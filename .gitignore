@@ -1,2 +1,45 @@
 /postgres-keycloak-data
 2024__yandex-architecture-sso.code-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# Сборки и покрытие
+dist/
+build/
+coverage/
+*.egg-info/
+
+# Airflow при локальном запуске вне контейнера
+airflow/logs/
+airflow/*.db
+airflow/*.db-journal
+
+# ОС и редакторы
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Логи и локальные переопределения окружения
+*.log
+.env.local
+.env.*.local

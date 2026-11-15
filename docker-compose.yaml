@@ -40,3 +40,79 @@ services:
       REACT_APP_KEYCLOAK_URL: http://localhost:8080
       REACT_APP_KEYCLOAK_REALM: reports-realm
       REACT_APP_KEYCLOAK_CLIENT_ID: reports-frontend
+  source_db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: bionicpro
+      POSTGRES_USER: bionic
+      POSTGRES_PASSWORD: bionic
+      TZ: UTC
+    volumes:
+      - ./source-db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - source_db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DB: reports
+      TZ: UTC
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    ports:
+      - "8123:8123"
+  airflow:
+    build:
+      context: ./airflow
+    user: "0:0"
+    command: ["bash", "/opt/airflow/start.sh"]
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__CORE__FERNET_KEY: 81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs=
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/data/airflow.db
+      SOURCE_DB_HOST: source_db
+      SOURCE_DB_PORT: "5432"
+      SOURCE_DB_NAME: bionicpro
+      SOURCE_DB_USER: bionic
+      SOURCE_DB_PASSWORD: bionic
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      TZ: UTC
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/start.sh:/opt/airflow/start.sh:ro
+      - airflow_data:/opt/airflow/data
+    ports:
+      - "8088:8080"
+    depends_on:
+      - source_db
+      - clickhouse
+  reports-api:
+    build:
+      context: ./reports-api
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DATABASE: reports
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/reports-realm
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/reports-realm/protocol/openid-connect/certs
+      CORS_ORIGIN: http://localhost:3000
+      TZ: UTC
+    ports:
+      - "8000:8000"
+    depends_on:
+      - clickhouse
+      - keycloak
+
+volumes:
+  source_db_data:
+  clickhouse_data:
+  airflow_data:
